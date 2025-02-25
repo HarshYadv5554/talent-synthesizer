@@ -3,15 +3,22 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import * as pdfjsLib from "pdfjs-dist";
 import { Upload, FileText, Check } from "lucide-react";
+import { storeResumeVector } from "@/utils/vectorDb";
+import { toast } from "sonner";
 
 // Configure PDF.js to use fake worker
 pdfjsLib.GlobalWorkerOptions.disableWorker = true;
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
+  metadata?: {
+    name: string;
+    email: string;
+    skills: string[];
+  };
 }
 
-export const ResumeUpload = ({ onResumeProcessed }: ResumeUploadProps) => {
+export const ResumeUpload = ({ onResumeProcessed, metadata }: ResumeUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
 
@@ -28,10 +35,19 @@ export const ResumeUpload = ({ onResumeProcessed }: ResumeUploadProps) => {
         fullText += text + " ";
       }
 
-      onResumeProcessed(fullText.trim());
+      const processedText = fullText.trim();
+      
+      // Store in vector database if metadata is provided
+      if (metadata) {
+        await storeResumeVector(processedText, metadata);
+      }
+
+      onResumeProcessed(processedText);
       setUploaded(true);
+      toast.success("Resume processed and stored successfully!");
     } catch (error) {
       console.error("Error processing PDF:", error);
+      toast.error("Failed to process resume. Please try again.");
       throw error;
     }
   };
