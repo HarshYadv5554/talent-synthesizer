@@ -6,8 +6,8 @@ import { Upload, FileText, Check } from "lucide-react";
 import { storeResumeVector } from "@/utils/vectorDb";
 import { toast } from "sonner";
 
-// Configure PDF.js to use fake worker
-pdfjsLib.GlobalWorkerOptions.disableWorker = true;
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
