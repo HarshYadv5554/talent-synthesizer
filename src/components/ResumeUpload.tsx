@@ -4,8 +4,10 @@ import { useDropzone } from "react-dropzone";
 import * as pdfjsLib from "pdfjs-dist";
 import { Upload, FileText, Check } from "lucide-react";
 
-// Set the worker source path explicitly to use the local worker file
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// Import worker directly from node_modules
+// @ts-ignore - Vite will handle this import
+import PDFWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = PDFWorker;
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
