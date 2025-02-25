@@ -1,13 +1,19 @@
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import * as pdfjsLib from "pdfjs-dist";
 import { Upload, FileText, Check } from "lucide-react";
 import { storeResumeVector } from "@/utils/vectorDb";
 import { toast } from "sonner";
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker
+const initializePdfLib = async () => {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = await import('pdfjs-dist/build/pdf.worker.mjs');
+  } catch (error) {
+    console.error('Error initializing PDF.js worker:', error);
+  }
+};
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
@@ -22,40 +28,39 @@ export const ResumeUpload = ({ onResumeProcessed, metadata }: ResumeUploadProps)
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
 
+  useEffect(() => {
+    initializePdfLib();
+  }, []);
+
   const processFile = async (file: File) => {
     try {
-      // Load PDF.js if not already loaded
-      await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
-        .then(async (pdf) => {
-          let fullText = "";
-          
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const content = await page.getTextContent();
-            const text = content.items.map((item: any) => item.str).join(" ");
-            fullText += text + " ";
-          }
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+      const pdf = await loadingTask.promise;
+      let fullText = "";
 
-          const processedText = fullText.trim();
-          
-          // Store in vector database if metadata is provided
-          if (metadata) {
-            await storeResumeVector(processedText, metadata);
-          }
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const text = content.items
+          .filter((item: any) => typeof item.str === 'string')
+          .map((item: any) => item.str)
+          .join(" ");
+        fullText += text + " ";
+      }
 
-          onResumeProcessed(processedText);
-          setUploaded(true);
-          toast.success("Resume processed and stored successfully!");
-        })
-        .catch((error) => {
-          console.error("Error processing PDF:", error);
-          toast.error("Failed to process resume. Please try again.");
-          throw error;
-        });
+      const processedText = fullText.trim();
+      
+      if (metadata) {
+        await storeResumeVector(processedText, metadata);
+      }
+
+      onResumeProcessed(processedText);
+      setUploaded(true);
+      toast.success("Resume processed successfully!");
     } catch (error) {
       console.error("Error processing PDF:", error);
       toast.error("Failed to process resume. Please try again.");
-      throw error;
     }
   };
 
@@ -71,7 +76,7 @@ export const ResumeUpload = ({ onResumeProcessed, metadata }: ResumeUploadProps)
     } finally {
       setUploading(false);
     }
-  }, [onResumeProcessed]);
+  }, [onResumeProcessed, metadata]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
