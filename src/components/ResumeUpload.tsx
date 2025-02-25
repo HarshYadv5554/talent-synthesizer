@@ -7,7 +7,11 @@ import { storeResumeVector } from "@/utils/vectorDb";
 import { toast } from "sonner";
 
 // Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Using a more reliable way to load the worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
