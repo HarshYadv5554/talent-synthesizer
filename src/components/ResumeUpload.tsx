@@ -7,11 +7,7 @@ import { storeResumeVector } from "@/utils/vectorDb";
 import { toast } from "sonner";
 
 // Configure PDF.js worker
-// Using a more reliable way to load the worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
@@ -28,27 +24,34 @@ export const ResumeUpload = ({ onResumeProcessed, metadata }: ResumeUploadProps)
 
   const processFile = async (file: File) => {
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let fullText = "";
+      // Load PDF.js if not already loaded
+      await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
+        .then(async (pdf) => {
+          let fullText = "";
+          
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const text = content.items.map((item: any) => item.str).join(" ");
+            fullText += text + " ";
+          }
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const text = content.items.map((item: any) => item.str).join(" ");
-        fullText += text + " ";
-      }
+          const processedText = fullText.trim();
+          
+          // Store in vector database if metadata is provided
+          if (metadata) {
+            await storeResumeVector(processedText, metadata);
+          }
 
-      const processedText = fullText.trim();
-      
-      // Store in vector database if metadata is provided
-      if (metadata) {
-        await storeResumeVector(processedText, metadata);
-      }
-
-      onResumeProcessed(processedText);
-      setUploaded(true);
-      toast.success("Resume processed and stored successfully!");
+          onResumeProcessed(processedText);
+          setUploaded(true);
+          toast.success("Resume processed and stored successfully!");
+        })
+        .catch((error) => {
+          console.error("Error processing PDF:", error);
+          toast.error("Failed to process resume. Please try again.");
+          throw error;
+        });
     } catch (error) {
       console.error("Error processing PDF:", error);
       toast.error("Failed to process resume. Please try again.");
