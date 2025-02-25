@@ -7,9 +7,13 @@ import { Button } from "@/components/ui/button";
 import { ResumeUpload } from "./ResumeUpload";
 import { SkillsInput } from "./SkillsInput";
 import { toast } from "sonner";
+import { analyzeResume, CandidateProfile } from "@/utils/ai";
+import { Loader2 } from "lucide-react";
 
 export const ApplicationForm = () => {
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<CandidateProfile | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -35,10 +39,39 @@ export const ApplicationForm = () => {
         skills: [],
         resumeText: "",
       });
+      setAnalysis(null);
     } catch (error) {
       toast.error("Failed to submit application. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResumeProcessed = async (text: string) => {
+    setFormData({ ...formData, resumeText: text });
+    setAnalyzing(true);
+
+    try {
+      // Store API key if not already stored
+      if (!localStorage.getItem('gemini_api_key')) {
+        localStorage.setItem('gemini_api_key', 'AIzaSyBAaQtGg36VqGPB5B2LLCtdEu0ml8IwrJg');
+      }
+
+      const profile = await analyzeResume(text);
+      setAnalysis(profile);
+      
+      // Auto-fill skills from analysis
+      setFormData(prev => ({
+        ...prev,
+        skills: [...new Set([...prev.skills, ...profile.skills])]
+      }));
+
+      toast.success("Resume analyzed successfully!");
+    } catch (error) {
+      console.error("Failed to analyze resume:", error);
+      toast.error("Failed to analyze resume. Please try again.");
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -98,9 +131,57 @@ export const ApplicationForm = () => {
           </p>
         </div>
 
-        <ResumeUpload
-          onResumeProcessed={(text) => setFormData({ ...formData, resumeText: text })}
-        />
+        <ResumeUpload onResumeProcessed={handleResumeProcessed} />
+
+        {analyzing && (
+          <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Analyzing resume...</span>
+          </div>
+        )}
+
+        {analysis && (
+          <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+            <div className="space-y-2">
+              <h3 className="font-semibold">AI Analysis</h3>
+              <p className="text-sm text-muted-foreground">{analysis.summary}</p>
+            </div>
+            
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Experience</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {analysis.experience.map((exp, i) => (
+                    <li key={i}>{exp}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-2">Education</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {analysis.education.map((edu, i) => (
+                    <li key={i}>{edu}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium mb-2">Profile Strength</h4>
+              <div className="flex items-center space-x-2">
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-500" 
+                    style={{ width: `${analysis.score}%` }}
+                  />
+                </div>
+                <span className="text-sm font-medium">{analysis.score}%</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">{analysis.feedback}</p>
+            </div>
+          </div>
+        )}
 
         <SkillsInput
           value={formData.skills}
