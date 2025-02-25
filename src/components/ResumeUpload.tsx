@@ -4,8 +4,8 @@ import { useDropzone } from "react-dropzone";
 import * as pdfjsLib from "pdfjs-dist";
 import { Upload, FileText, Check } from "lucide-react";
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js to use fake worker
+pdfjsLib.GlobalWorkerOptions.disableWorker = true;
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
