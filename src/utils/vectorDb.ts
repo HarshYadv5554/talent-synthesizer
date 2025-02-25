@@ -1,11 +1,18 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+// Check for required environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
+  );
+}
+
 // Initialize Supabase client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface ResumeVector {
   id: string;
@@ -20,12 +27,17 @@ export interface ResumeVector {
 
 // Function to generate embeddings using OpenAI's API
 async function generateEmbedding(text: string): Promise<number[]> {
+  const openAiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  if (!openAiKey) {
+    throw new Error('Missing OpenAI API key. Please ensure VITE_OPENAI_API_KEY is set.');
+  }
+
   try {
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        'Authorization': `Bearer ${openAiKey}`
       },
       body: JSON.stringify({
         input: text,
