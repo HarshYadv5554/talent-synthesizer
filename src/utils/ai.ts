@@ -1,9 +1,9 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(localStorage.getItem('gemini_api_key') || '');
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// Initialize Gemini API with the correct model name
+const genAI = new GoogleGenerativeAI('AIzaSyBAaQtGg36VqGPB5B2LLCtdEu0ml8IwrJg');
+const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" }); // Updated model name
 
 export interface CandidateProfile {
   summary: string;
