@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -5,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ResumeUpload } from "./ResumeUpload";
 import { SkillsInput } from "./SkillsInput";
+import { JobMatchingSection } from "./JobMatchingSection";
 import { toast } from "sonner";
 import { analyzeResume, CandidateProfile } from "@/utils/ai";
 import { Loader2 } from "lucide-react";
@@ -183,6 +185,8 @@ export const ApplicationForm = () => {
           onChange={(skills) => setFormData({ ...formData, skills })}
         />
       </Card>
+
+      {formData.resumeText && <JobMatchingSection resumeText={formData.resumeText} />}
 
       <div className="flex justify-end">
         <Button type="submit" size="lg" disabled={loading}>
