@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,11 +26,9 @@ export const ApplicationForm = () => {
     setLoading(true);
 
     try {
-      // In a real app, we'd send this to an API
       console.log("Form submitted:", formData);
       toast.success("Application submitted successfully!");
-      
-      // Reset form
+
       setFormData({
         name: "",
         email: "",
@@ -52,7 +49,6 @@ export const ApplicationForm = () => {
     setAnalyzing(true);
 
     try {
-      // Store API key if not already stored
       if (!localStorage.getItem('gemini_api_key')) {
         localStorage.setItem('gemini_api_key', 'AIzaSyBAaQtGg36VqGPB5B2LLCtdEu0ml8IwrJg');
       }
@@ -60,7 +56,6 @@ export const ApplicationForm = () => {
       const profile = await analyzeResume(text);
       setAnalysis(profile);
       
-      // Auto-fill skills from analysis
       setFormData(prev => ({
         ...prev,
         skills: [...new Set([...prev.skills, ...profile.skills])]
